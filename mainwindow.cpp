@@ -27,6 +27,12 @@ MainWindow::MainWindow(QWidget *parent) :
 
     on_bUartRefresh_clicked();
 
+    scrTimer = new QTimer(this);
+    scrTimer->setSingleShot(true);
+    scrTimer->setInterval(150);
+
+    connect(scrTimer, &QTimer::timeout, this, &MainWindow::slScrTimer);
+
     connect(ticon, &QSystemTrayIcon::activated, this, &MainWindow::ticon_activated);
     ticon_activated(QSystemTrayIcon::Trigger);
     connect(&resendTimer, &QTimer::timeout, this, &MainWindow::on_bSend_clicked);
@@ -35,6 +41,7 @@ MainWindow::MainWindow(QWidget *parent) :
     refreshTimer.start();
 
     _fetchScriptsFromFile();
+    slRWUpdate();
 }
 
 MainWindow::~MainWindow()
@@ -54,10 +61,25 @@ void MainWindow::on_serials_activated(int index)
 void MainWindow::onSerialData()
 {
     qDebug() << "onSerialData()";
-    QByteArray data = serial.readAll();
+    data.append(serial.readAll());
+    if (!scrTimer->isActive()) scrTimer->start();
+}
+
+void MainWindow::slScrTimer()
+{
     receiver.append(data);
+    rcount += data.size();
+    slRWUpdate();
+    data.clear();
     ui->eReceiver->setData(receiver);
-    ui->lNBytes->setText(tr("Read 0x%1 bytes, total 0x%2").arg(data.size(), 4, 16, CH0).arg(receiver.size(), 4, 16, CH0));
+}
+
+void MainWindow::slRWUpdate()
+{
+    ui->lNBytes->setText(tr("Read 0x%1 bytes, Sent 0x%2 bytes, last sent 0x%3 bytes")
+                         .arg(rcount, 4, 16, CH0)
+                         .arg(wcount, 4, 16, CH0)
+                         .arg(lwcount, 4, 16, CH0));
 }
 
 void MainWindow::onSerialError(QSerialPort::SerialPortError error)
@@ -72,14 +94,17 @@ void MainWindow::on_bClearTransmitter_clicked()
 {
     sender.clear();
     ui->eSender->setData(sender);
-    bytesSent = 0;
+    wcount = 0;
+    lwcount = 0;
+    slRWUpdate();
 }
 
 void MainWindow::on_bClearReceiver_clicked()
 {
     receiver.clear();
     ui->eReceiver->setData(receiver);
-    ui->lNBytes->clear();
+    rcount = 0;
+    slRWUpdate();
 }
 
 void MainWindow::on_bSend_clicked()
@@ -91,10 +116,9 @@ void MainWindow::on_bSend_clicked()
     qDebug() << "send()";
 
     serial.write(data);
-    bytesSent += data.size();
-    QString st = ui->lNBytes->text();
-    st = tr(" Sent 0x%1 bytes, total 0x%2").arg(data.size()).arg(bytesSent);
-    ui->label_3->setText(st);
+    wcount += data.size();
+    lwcount = data.size();
+    slRWUpdate();
 }
 
 void MainWindow::on_TimerUartRefresh()
@@ -107,7 +131,7 @@ void MainWindow::on_bUartRefresh_clicked()
 {
     QString ost2, st2;
     QString st;
-    QModelIndex midx;
+    //QModelIndex midx;
     int nidx=-1, oidx = 0; // new and old index of selected port
     oidx = ui->serials->currentIndex(); // old port index
     QString oPortName = ports.value(oidx).portName(); // old port name
@@ -227,7 +251,7 @@ void MainWindow::_saveScriptsToFile()
     f.open(QIODevice::WriteOnly);
     QString st;
     QString idxSt, cmdSt;
-    int mid=0;
+    //int mid=0;
     int idx = 0;
     while(idx<m_scrNames.count()) {
         st = m_scrNames.value(idx)->text() + "," + m_scrCommands.value(idx)->text()+"\n";
@@ -254,7 +278,7 @@ void MainWindow::on_bAddScript_clicked(QString nm, QString cmd)
 
     connect(bSend, &QPushButton::clicked, this, &MainWindow::onScriptSendButton);
     connect(bDel, &QPushButton::clicked, this, &MainWindow::onScriptDelButton);
-    (static_cast<QBoxLayout*>(ui->tabScripts->layout()))->addLayout(lay);
+    (static_cast<QBoxLayout*>(ui->scrollAreaWidgetContents->layout()))->addLayout(lay);
     m_scrButs.append(bSend);
     m_scrDelButs.append(bDel);
     m_scrNames.append(eName);
@@ -273,11 +297,12 @@ void MainWindow::onScriptSendButton()
     QLineEdit *le = dynamic_cast<QLineEdit*>(m_scrCommands.value(idx));
 
     QByteArray dat = QByteArray::fromHex(le->text().toLocal8Bit());
-    serial.write(dat);
-    bytesSent += dat.size();
-    QString st = tr(" Sent 0x%1 bytes, total 0x%2").arg(dat.size()).arg(bytesSent);
-    ui->label_3->setText(st);
+    wcount += dat.count();
+    lwcount = dat.count();
 
+    serial.write(dat);
+
+    slRWUpdate();
 }
 
 void MainWindow::onScriptDelButton(int defIdx)
@@ -290,7 +315,7 @@ void MainWindow::onScriptDelButton(int defIdx)
     } else idx = defIdx;
     qDebug() << "delete script" << idx;
     if (idx<0) return;
-    QBoxLayout * lay = static_cast<QBoxLayout*>(ui->tabScripts->layout());
+    QBoxLayout * lay = static_cast<QBoxLayout*>(ui->scrollAreaWidgetContents->layout());
     QBoxLayout *lay2 = m_scrLays.value(idx);
     QLayoutItem *itm;
 
@@ -329,3 +354,4 @@ void MainWindow::on_bClearScripts_clicked()
     for (idx = 0; idx<max; idx++)
         onScriptDelButton(idx);
 }
+

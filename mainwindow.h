@@ -9,7 +9,7 @@
 
 #define CH0 QLatin1Char('0')
 
-#define APP_VER_STR "1.05"
+#define APP_VER_STR "1.15"
 
 namespace Ui {
 class MainWindow;
@@ -56,7 +56,8 @@ private slots:
     void on_bSaveScripts_clicked();
 
     void on_bClearScripts_clicked();
-
+    void slScrTimer();
+    void slRWUpdate();
 private:
     void _disconn();
     void _fetchScriptsFromFile();
@@ -64,7 +65,6 @@ private:
 
     Ui::MainWindow *ui;
 
-    int bytesSent=0;
     int m_curidx = -1;
 
     QList<QPushButton*> m_scrButs;
@@ -72,6 +72,12 @@ private:
     QList<QPushButton*> m_scrDelButs;
     QList<QLineEdit*> m_scrNames;
     QList<QLineEdit*> m_scrCommands;
+
+    QByteArray data;
+    int rcount = 0;
+    int wcount = 0;
+    int lwcount = 0;
+    QTimer *scrTimer;
 };
 
 #endif // MAINWINDOW_H
