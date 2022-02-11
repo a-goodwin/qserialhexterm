@@ -39,7 +39,7 @@
         <item>
          <widget class="QComboBox" name="eBaudRate">
           <property name="currentText">
-           <string>1200</string>
+           <string>9600</string>
           </property>
           <property name="maxVisibleItems">
            <number>16</number>
