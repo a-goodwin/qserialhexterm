@@ -273,11 +273,13 @@ void MainWindow::on_bAddScript_clicked(QString nm, QString cmd)
     QPushButton *bSend = new QPushButton(this); bSend->setText("Send");
     QPushButton *bDel = new QPushButton(this); bDel->setText("Del");
     //cbHex->setText("Hex");
-    lay->addWidget(lNum);lay->addWidget(eName);lay->addWidget(eCmd, 2);//lay->addWidget(cbHex);
+    //lay->addWidget(lNum);
+    lay->addWidget(eName);lay->addWidget(eCmd, 2);//lay->addWidget(cbHex);
     lay->addWidget(bSend); lay->addWidget(bDel); lay->addStretch(0);
-
+    lay->setStretch(0, 1);
+    lay->setStretch(1, 2);
     connect(bSend, &QPushButton::clicked, this, &MainWindow::onScriptSendButton);
-    connect(bDel, &QPushButton::clicked, this, &MainWindow::onScriptDelButton);
+    connect(bDel, &QPushButton::clicked, this, &MainWindow::slScriptDelButtonClick);
     (static_cast<QBoxLayout*>(ui->scrollAreaWidgetContents->layout()))->addLayout(lay);
     m_scrButs.append(bSend);
     m_scrDelButs.append(bDel);
@@ -305,8 +307,15 @@ void MainWindow::onScriptSendButton()
     slRWUpdate();
 }
 
+void MainWindow::slScriptDelButtonClick(bool clicked)
+{
+    Q_UNUSED(clicked);
+    onScriptDelButton(-1);
+}
+
 void MainWindow::onScriptDelButton(int defIdx)
 {
+
     int idx;
     if (defIdx<0) {
         QPushButton* b = dynamic_cast<QPushButton*>(QObject::sender());

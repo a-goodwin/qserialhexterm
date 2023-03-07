@@ -9,7 +9,7 @@
 
 #define CH0 QLatin1Char('0')
 
-#define APP_VER_STR "1.15"
+#define APP_VER_STR "1.16"
 
 namespace Ui {
 class MainWindow;
@@ -52,7 +52,8 @@ private slots:
 
     void on_bAddScript_clicked(QString nm="", QString cmd="");
     void onScriptSendButton();
-    void onScriptDelButton(int defIdx=-1);
+    void slScriptDelButtonClick(bool clicked);
+    void onScriptDelButton(int defIdx);
     void on_bSaveScripts_clicked();
 
     void on_bClearScripts_clicked();
